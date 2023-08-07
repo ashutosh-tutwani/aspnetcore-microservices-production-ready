@@ -3,8 +3,11 @@
 Production ready .NET 6 microservices integrated with OpenAPI. 
 
 ## Cloud Provider
-# AWS
-SNS, SQS, Parameter Store/ Secrets Manager, Cloudwatch
+### We have used cloud agnostic approach to build/deploy the app. Means you can leverage any cloud provider you like (AWS, Azure, GCP, etc..).
+This app uses AWS as the default Cloud Provider. 
+But you can change the cloud provider with just one single change in appsettings.
+
+AWS Services used: SNS, SQS, Parameter Store/ Secrets Manager, Cloudwatch
 
 
 ## Identity (Authentication and Autharization): 
