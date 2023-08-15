@@ -1,5 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Amazon.Runtime;
+using AWS.Logger;
+using AWS.Logger.SeriLog;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Serilog;
+using Serilog.Formatting.Compact;
+using Services.Common;
+using Services.Common.Extensions;
 using System.Reflection;
 
 public class Startup
@@ -19,14 +26,7 @@ public class Startup
 
         var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-
-        services.AddCors(options =>
-        {
-            options.AddPolicy("crs", builder =>
-            {
-                builder.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
-            });
-        });
+        services.AddSwagger(xmlPath);
 
         services.Configure<ApiBehaviorOptions>(options =>
         {
@@ -53,6 +53,9 @@ public class Startup
 
     public void Configure(WebApplication app, IWebHostEnvironment env)
     {
+        // create serilog logger
+        Log.Logger = CreateSerilogLogger(env);
+        Log.Logger.Information("log configured");
 
         if (app.Environment.IsDevelopment())
         {
@@ -66,7 +69,6 @@ public class Startup
         app.UseHttpsRedirection();
 
         app.UseRouting();
-        app.UseCors("crs");
 
         app.UseAuthentication();
         app.UseAuthorization();
@@ -74,14 +76,55 @@ public class Startup
         // Configure the HTTP request pipeline.
         app.UseSwagger(c =>
         {
-            c.RouteTemplate = "api/portal/swagger/{documentName}/swagger.json";
+            c.RouteTemplate = "api/user-management/swagger/{documentName}/swagger.json";
         });
         app.UseSwaggerUI(c =>
         {
-            c.SwaggerEndpoint("/api/portal/swagger/v1/swagger.json", "Merchant Portal API");
-            c.RoutePrefix = "api/portal/swagger";
+            c.SwaggerEndpoint("/api/user-management/swagger/v1/swagger.json", "User Management API");
+            c.RoutePrefix = "api/user-management/swagger";
         });
 
         app.MapControllers().RequireAuthorization();
     }
+
+    #region Serilog
+
+    private Serilog.ILogger CreateSerilogLogger(IWebHostEnvironment env)
+    {
+        if (env.IsDevelopment())
+        {
+            return SerilogLoggerConfig()
+                    .ReadFrom.Configuration(Configuration)
+                    .WriteTo.File(new RenderedCompactJsonFormatter(), Path.Combine(env.ContentRootPath, "Logs", "UserManagement.API.json"),
+                    rollingInterval: RollingInterval.Day, retainedFileCountLimit: 5)
+                    .WriteTo.Console()
+                    .CreateLogger();
+        }
+
+        var credentials = new BasicAWSCredentials(Configuration.GetValue<string>("AWS_ACCESS_KEY_ID"),
+                                                  Configuration.GetValue<string>("AWS_SECRET_ACCESS_KEY"));
+
+        // create a logger for AWS Cloudwatch
+        var awsConfiguration = new AWSLoggerConfig
+        {
+            Credentials = credentials,
+            LogGroup = "/logs/merchant-portal-api",
+            Region = ""
+        };
+
+        return SerilogLoggerConfig()
+                 .ReadFrom.Configuration(Configuration)
+                  .WriteTo.AWSSeriLog(awsConfiguration, textFormatter: new RenderedCompactJsonFormatter())
+                  .CreateLogger();
+    }
+
+    private static LoggerConfiguration SerilogLoggerConfig()
+    {
+        return new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .Enrich.WithDatadogTraceIdAndSpanId()
+            .Enrich.WithProperty("service.instance.id", ServiceDetails.InstanceId);
+    }
+
+    #endregion Serilog
 }
