@@ -15,16 +15,26 @@ This app uses OIDC protocol with OAuth 2.0.
 For Identity Provider its been configured to use Auth0 (by Okta)
 
 ## Messaging:
+This application uses AWS SNS and AWS SQS as a messaging broker.
+AWS SNS is used to fan out the events/messages to different consumers or subscribers. Whereas AWS SQS is a message queue service.
 
 ## Observaibility:
-Opentelemetry
+This application uses OpenTelemetry to collect telemetry data from different distributed systems in order to troubleshoot, debug and manage applications.
+For logging, this application uses Serilog.
 
 ## Search:
-The application is using ElasticSearch behind the scenes 
+The application is using ElasticSearch as a search engine.
 
 ## Tests:
+XUnit and Moq are being used as Unit testing framework.
 
 ## Services
+### User Management API
 
-## Workers
+### Reporting API
+
+## Background Services (Workers)
+
+## Deployment
+This app is deployed using AWS EKS. 
 
