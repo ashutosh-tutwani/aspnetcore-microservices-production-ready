@@ -15,7 +15,7 @@ This app uses OIDC protocol with OAuth 2.0.
 For Identity Provider its been configured to use Auth0 (by Okta)
 
 ## Messaging:
-This application uses AWS SNS and AWS SQS as a messaging broker.
+This application uses AWS SNS topics and AWS SQS as a messaging broker.
 AWS SNS is used to fan out the events/messages to different consumers or subscribers. Whereas AWS SQS is a message queue service.
 
 ## Observaibility:
